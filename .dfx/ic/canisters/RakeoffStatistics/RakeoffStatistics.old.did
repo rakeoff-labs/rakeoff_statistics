@@ -1,0 +1,14 @@
+type Result = 
+ variant {
+   err;
+   ok;
+ };
+type RakeoffStats = 
+ record {
+   total_icp_staked: nat64;
+   total_icp_stakers: nat;
+ };
+service : {
+  get_rakeoff_stats: () -> (RakeoffStats) query;
+  track_user_staked_amount: (nat64) -> (Result);
+}

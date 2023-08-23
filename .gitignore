@@ -7,8 +7,10 @@
 .DS_Store
 **/.DS_Store
 
-# dfx temporary files
-.dfx/
+# focus on wasm only
+.dfx/local/
+.dfx/ic/lsp
+.dfx/canisters/idl
 
 # generated files
 src/declarations/
@@ -16,3 +18,6 @@ src/declarations/
 # frontend code
 node_modules/
 dist/
+
+# configs
+canister_ids.json
