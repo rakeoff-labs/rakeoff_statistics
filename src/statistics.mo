@@ -23,6 +23,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   private stable var _totalStakedIcp : Nat64 = 0;
 
+  // api key
+  private stable var _apiKey : Text = "";
+
   // Hashmap of user Id and their total staked ICP amount
   private var _userStakedIcp = HashMap.HashMap<Principal, Nat64>(10, Principal.equal, Principal.hash);
 
@@ -45,10 +48,15 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   ////////////////////////
   // Public Functions ////
   ////////////////////////
+  
+  public shared ({ caller }) func set_api_key(key : Text) : async Result.Result<Text, ()> {
+    assert (caller == owner);
+    return setApiKey(key);
+  };
 
-  public shared ({ caller }) func track_user_staked_amount(totalStakedIcp : Nat64) : async Result.Result<(), ()> {
+  public shared ({ caller }) func track_user_staked_amount(key : Text, totalStakedIcp : Nat64) : async Result.Result<(), ()> {
     assert (Principal.isAnonymous(caller) == false);
-    return trackUserStakedAmount(caller, totalStakedIcp);
+    return trackUserStakedAmount(key, caller, totalStakedIcp);
   };
 
   public query func get_rakeoff_stats() : async RakeoffStats {
@@ -59,18 +67,22 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Private Statistic Functions ///
   //////////////////////////////////
 
-  private func trackUserStakedAmount(userId : Principal, totalStakedIcp : Nat64) : Result.Result<(), ()> {
-    _userStakedIcp.put(userId, totalStakedIcp);
+  private func trackUserStakedAmount(key : Text, userId : Principal, totalStakedIcp : Nat64) : Result.Result<(), ()> {
+    if (key == _apiKey) {
+      _userStakedIcp.put(userId, totalStakedIcp);
 
-    var newStakedIcpSum : Nat64 = 0;
+      var newStakedIcpSum : Nat64 = 0;
 
-    for (value in _userStakedIcp.vals()) {
-      newStakedIcpSum += value;
+      for (value in _userStakedIcp.vals()) {
+        newStakedIcpSum += value;
+      };
+
+      _totalStakedIcp := newStakedIcpSum;
+
+      return #ok();
+    } else {
+      return #err();
     };
-
-    _totalStakedIcp := newStakedIcpSum;
-
-    return #ok();
   };
 
   private func getRakeoffStats() : RakeoffStats {
@@ -79,4 +91,14 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
       total_icp_staked = _totalStakedIcp;
     };
   };
+
+  //////////////////////////////
+  // Private Admin Functions ///
+  //////////////////////////////
+
+  private func setApiKey(key : Text) : Result.Result<Text, ()> {
+    _apiKey := key;
+    return #ok(_apiKey);
+  };
+
 };

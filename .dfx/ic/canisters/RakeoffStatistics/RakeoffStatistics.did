@@ -1,3 +1,8 @@
+type Result_1 = 
+ variant {
+   err;
+   ok: text;
+ };
 type Result = 
  variant {
    err;
@@ -11,6 +16,7 @@ type RakeoffStats =
 type RakeoffStatistics = 
  service {
    get_rakeoff_stats: () -> (RakeoffStats) query;
-   track_user_staked_amount: (nat64) -> (Result);
+   set_api_key: (text) -> (Result_1);
+   track_user_staked_amount: (text, nat64) -> (Result);
  };
 service : () -> RakeoffStatistics
