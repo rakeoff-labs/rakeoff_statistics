@@ -3,6 +3,9 @@ import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 
+// Welcome to the RakeoffStatistics smart contract.
+// This smart contract is built to track some important stats about the Rakeoff dApp
+
 shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   /////////////
@@ -42,6 +45,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   ////////////////////////
   // Public Functions ////
   ////////////////////////
+
   public shared ({ caller }) func track_user_staked_amount(totalStakedIcp : Nat64) : async Result.Result<(), ()> {
     assert (Principal.isAnonymous(caller) == false);
     return trackUserStakedAmount(caller, totalStakedIcp);
