@@ -1,0 +1,29 @@
+{
+  "canisters": {
+    "rakeoff_statistics_backend": {
+      "main": "src/rakeoff_statistics_backend/main.mo",
+      "type": "motoko"
+    },
+    "rakeoff_statistics_frontend": {
+      "dependencies": [
+        "rakeoff_statistics_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/rakeoff_statistics_frontend/src/index.html"
+      },
+      "source": [
+        "src/rakeoff_statistics_frontend/assets",
+        "dist/rakeoff_statistics_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
