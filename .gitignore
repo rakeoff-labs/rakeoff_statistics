@@ -12,9 +12,6 @@
 .dfx/ic/lsp
 .dfx/canisters/idl
 
-# generated files
-src/declarations/
-
 # frontend code
 node_modules/
 dist/
