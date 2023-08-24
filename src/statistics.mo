@@ -1,3 +1,4 @@
+import RakeoffKernelInterface "./rakeoffkernel_interface/kernel";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
@@ -7,6 +8,12 @@ import Result "mo:base/Result";
 // This smart contract is built to track some important stats about the Rakeoff dApp
 
 shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
+  /////////////////
+  // Constants ////
+  /////////////////
+
+  // RakeoffKernel canister
+  let RakeoffKernel = actor "rktkb-jiaaa-aaaap-aa23a-cai" : RakeoffKernelInterface.Self;
 
   /////////////
   // Types ////
@@ -15,6 +22,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   public type RakeoffStats = {
     total_icp_stakers : Nat;
     total_icp_staked : Nat64;
+    total_icp_rewarded : Nat64;
   };
 
   //////////////////////
@@ -48,7 +56,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   ////////////////////////
   // Public Functions ////
   ////////////////////////
-  
+
   public shared ({ caller }) func set_api_key(key : Text) : async Result.Result<Text, ()> {
     assert (caller == owner);
     return setApiKey(key);
@@ -59,8 +67,8 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return trackUserStakedAmount(key, caller, totalStakedIcp);
   };
 
-  public query func get_rakeoff_stats() : async RakeoffStats {
-    return getRakeoffStats();
+  public func get_rakeoff_stats() : async RakeoffStats {
+    return await getRakeoffStats();
   };
 
   //////////////////////////////////
@@ -85,10 +93,20 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     };
   };
 
-  private func getRakeoffStats() : RakeoffStats {
+  private func getRakeoffStats() : async RakeoffStats {
+    let kernelStats = await RakeoffKernel.get_canister_stats();
+
+    let winners = kernelStats.lotto_winners;
+    var totalAmount : Nat64 = 0;
+
+    for ((_, amount) in winners.vals()) {
+      totalAmount += amount;
+    };
+
     return {
       total_icp_stakers = _userStakedIcp.size();
       total_icp_staked = _totalStakedIcp;
+      total_icp_rewarded = totalAmount;
     };
   };
 

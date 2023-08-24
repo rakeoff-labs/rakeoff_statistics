@@ -7,6 +7,7 @@ export interface RakeoffStatistics {
   'track_user_staked_amount' : ActorMethod<[string, bigint], Result>,
 }
 export interface RakeoffStats {
+  'total_icp_rewarded' : bigint,
   'total_icp_stakers' : bigint,
   'total_icp_staked' : bigint,
 }

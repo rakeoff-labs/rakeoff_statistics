@@ -10,12 +10,13 @@ type Result =
  };
 type RakeoffStats = 
  record {
+   total_icp_rewarded: nat64;
    total_icp_staked: nat64;
    total_icp_stakers: nat;
  };
 type RakeoffStatistics = 
  service {
-   get_rakeoff_stats: () -> (RakeoffStats) query;
+   get_rakeoff_stats: () -> (RakeoffStats);
    set_api_key: (text) -> (Result_1);
    track_user_staked_amount: (text, nat64) -> (Result);
  };
