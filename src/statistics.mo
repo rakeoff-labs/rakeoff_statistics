@@ -31,6 +31,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   private stable var _totalStakedIcp : Nat64 = 0;
 
+  // stable variable of ICP prizes awarded from the prize pool
+  private stable var _totalAwardedIcp : Nat64 = 0;
+
   // api key
   private stable var _apiKey : Text = "";
 
@@ -62,13 +65,18 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return setApiKey(key);
   };
 
+  public shared ({ caller }) func update_prize_award_stats() : async Result.Result<(), ()> {
+    assert (caller == owner);
+    return await updatePrizeAwardStats();
+  };
+
   public shared ({ caller }) func track_user_staked_amount(key : Text, totalStakedIcp : Nat64) : async Result.Result<(), ()> {
     assert (Principal.isAnonymous(caller) == false);
     return trackUserStakedAmount(key, caller, totalStakedIcp);
   };
 
-  public func get_rakeoff_stats() : async RakeoffStats {
-    return await getRakeoffStats();
+  public query func get_rakeoff_stats() : async RakeoffStats {
+    return getRakeoffStats();
   };
 
   //////////////////////////////////
@@ -93,20 +101,11 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     };
   };
 
-  private func getRakeoffStats() : async RakeoffStats {
-    let kernelStats = await RakeoffKernel.get_canister_stats();
-
-    let winners = kernelStats.lotto_winners;
-    var totalAmount : Nat64 = 0;
-
-    for ((_, amount) in winners.vals()) {
-      totalAmount += amount;
-    };
-
+  private func getRakeoffStats() : RakeoffStats {
     return {
       total_icp_stakers = _userStakedIcp.size();
       total_icp_staked = _totalStakedIcp;
-      total_icp_rewarded = totalAmount;
+      total_icp_rewarded = _totalAwardedIcp;
     };
   };
 
@@ -119,4 +118,18 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return #ok(_apiKey);
   };
 
+  private func updatePrizeAwardStats() : async Result.Result<(), ()> {
+    let kernelStats = await RakeoffKernel.get_canister_stats();
+
+    let winners = kernelStats.lotto_winners;
+    var totalAmount : Nat64 = 0;
+
+    for ((_, amount) in winners.vals()) {
+      totalAmount += amount;
+    };
+
+    _totalAwardedIcp := totalAmount;
+
+    #ok();
+  };
 };

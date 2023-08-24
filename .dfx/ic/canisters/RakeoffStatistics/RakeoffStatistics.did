@@ -16,8 +16,9 @@ type RakeoffStats =
  };
 type RakeoffStatistics = 
  service {
-   get_rakeoff_stats: () -> (RakeoffStats);
+   get_rakeoff_stats: () -> (RakeoffStats) query;
    set_api_key: (text) -> (Result_1);
    track_user_staked_amount: (text, nat64) -> (Result);
+   update_prize_award_stats: () -> (Result);
  };
 service : () -> RakeoffStatistics

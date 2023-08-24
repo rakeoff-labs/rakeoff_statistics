@@ -5,6 +5,7 @@ export interface RakeoffStatistics {
   'get_rakeoff_stats' : ActorMethod<[], RakeoffStats>,
   'set_api_key' : ActorMethod<[string], Result_1>,
   'track_user_staked_amount' : ActorMethod<[string, bigint], Result>,
+  'update_prize_award_stats' : ActorMethod<[], Result>,
 }
 export interface RakeoffStats {
   'total_icp_rewarded' : bigint,
