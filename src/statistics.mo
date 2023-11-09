@@ -29,6 +29,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Canister State ////
   //////////////////////
 
+  // stable variable of staked icp on the Rakeoff frontend
   private stable var _totalStakedIcp : Nat64 = 0;
 
   // stable variable of ICP prizes awarded from the prize pool
@@ -119,16 +120,21 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   };
 
   private func updatePrizeAwardStats() : async Result.Result<(), ()> {
-    let kernelStats = await RakeoffKernel.get_canister_stats();
+    let pools = await RakeoffKernel.get_rakeoff_pools();
 
-    let winners = kernelStats.lotto_winners;
-    var totalAmount : Nat64 = 0;
+    let oldPrizes : Nat64 = 8600000000; // as of our last update the old prizes were erased
+    var totalPrizes : Nat64 = 0;
 
-    for ((_, amount) in winners.vals()) {
-      totalAmount += amount;
+    for (pool in pools.pool_history.vals()) {
+      switch (pool) {
+        case (?pool) {
+          totalPrizes += pool.amount_disbursed;
+        };
+        case _ {};
+      };
     };
 
-    _totalAwardedIcp := totalAmount;
+    _totalAwardedIcp := totalPrizes + oldPrizes;
 
     #ok();
   };

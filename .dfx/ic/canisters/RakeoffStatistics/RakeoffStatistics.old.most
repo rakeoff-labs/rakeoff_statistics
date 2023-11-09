@@ -1,6 +1,7 @@
 // Version: 1.0.0
 actor {
   stable var _apiKey : Text;
+  stable var _totalAwardedIcp : Nat64;
   stable var _totalStakedIcp : Nat64;
   stable var _userStakedIcpStorage : [(Principal, Nat64)]
 };
