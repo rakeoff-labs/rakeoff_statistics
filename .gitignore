@@ -18,3 +18,4 @@ dist/
 
 # configs
 canister_ids.json
+.mops

@@ -37,17 +37,6 @@ type RakeoffStats =
    total_icp_winners_processed: nat;
    total_neurons_in_achievements: nat;
  };
-type RakeoffStatistics = 
- service {
-   controller_clear_server_cache: () -> ();
-   controller_get_api_key: () -> (Result_1);
-   controller_set_api_key: (text) -> (Result_1);
-   controller_update_cached_stats: () -> ();
-   get_rakeoff_stats: () -> (RakeoffStats) query;
-   http_request: (HttpRequest) -> (HttpResponse) query;
-   http_request_update: (HttpRequest) -> (HttpResponse);
-   track_user_staked_amount: (text, nat64) -> (Result);
- };
 type PoolAmount = text;
 type HttpResponse = 
  record {
@@ -74,4 +63,13 @@ type CallbackStrategy =
    callback: func (Token) -> (StreamingCallbackHttpResponse) query;
    token: Token;
  };
-service : () -> RakeoffStatistics
+service : {
+  controller_clear_server_cache: () -> ();
+  controller_get_api_key: () -> (Result_1);
+  controller_set_api_key: (text) -> (Result_1);
+  controller_update_cached_stats: () -> ();
+  get_rakeoff_stats: () -> (RakeoffStats) query;
+  http_request: (HttpRequest) -> (HttpResponse) query;
+  http_request_update: (HttpRequest) -> (HttpResponse);
+  track_user_staked_amount: (text, nat64) -> (Result);
+}

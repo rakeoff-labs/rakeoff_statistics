@@ -1,7 +1,61 @@
 // Version: 1.0.0
+type AssetEncoding =
+  {
+    content : [Blob];
+    contentEncoding : Text;
+    modified : Time__1;
+    sha256 : ?Blob;
+    totalLength : Nat
+  };
+type CallbackStrategy =
+  {
+    callback : shared query Token -> async StreamingCallbackHttpResponse__1;
+    token : Token
+  };
+type HeaderField__3 = (Text, Text);
+type HttpRequest__3 =
+  {body : Blob; headers : [HeaderField__3]; method : Text; url : Text};
+type HttpRequest__4 = HttpRequest__3;
+type HttpResponse__3 =
+  {
+    body : Blob;
+    headers : [HeaderField__3];
+    status_code : Nat16;
+    streaming_strategy : ?StreamingStrategy__1;
+    upgrade : ?Bool
+  };
+type HttpResponse__4 = HttpResponse__3;
+type Key__2 = Text;
+type PoolAmount = Text;
+type StableAsset = {contentType : Text; encodings : [(Text, AssetEncoding)]};
+type StableAsset__1 = StableAsset;
+type StreamingCallbackHttpResponse__1 = {body : Blob; token : ?Token};
+type StreamingStrategy__1 = {#Callback : CallbackStrategy};
+type Time__1 = Int;
+type Timestamp = Text;
+type Token = {arbitrary_data : Text};
 actor {
   stable var _apiKey : Text;
-  stable var _totalAwardedIcp : Nat64;
-  stable var _totalStakedIcp : Nat64;
-  stable var _userStakedIcpStorage : [(Principal, Nat64)]
+  stable var _rakeoffStats :
+    {
+      average_icp_per_pool : Nat64;
+      average_icp_win_amount : Nat64;
+      highest_icp_pool : Nat64;
+      highest_icp_win_amount : Nat64;
+      icp_claimed_from_achievements : Nat64;
+      icp_fees_collected : Nat64;
+      icp_fees_from_icp_disbursement : Nat64;
+      pool_history_chart_data : [(Timestamp, PoolAmount)];
+      total_icp_pools_successfully_completed : Nat;
+      total_icp_rewarded : Nat64;
+      total_icp_staked : Nat64;
+      total_icp_stakers : Nat;
+      total_icp_winner_processing_failures : Nat;
+      total_icp_winners_processed : Nat;
+      total_neurons_in_achievements : Nat
+    };
+  stable var _userStakedIcpStorage : [(Principal, Nat64)];
+  stable var serializedEntries :
+    ([(HttpRequest__4, (HttpResponse__4, Nat))], [(Key__2, StableAsset__1)],
+     [Principal])
 };
