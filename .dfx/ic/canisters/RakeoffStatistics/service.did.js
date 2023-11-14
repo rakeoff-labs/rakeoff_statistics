@@ -1,22 +1,30 @@
 export const idlFactory = ({ IDL }) => {
   const Result_1 = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Null });
-  const Timestamp = IDL.Text;
-  const PoolAmount = IDL.Text;
-  const RakeoffStats = IDL.Record({
-    'average_icp_per_pool' : IDL.Nat64,
-    'average_icp_win_amount' : IDL.Nat64,
+  const HistoryChartData = IDL.Record({
+    'timestamp' : IDL.Nat64,
+    'amount' : IDL.Nat64,
+  });
+  const Stats = IDL.Record({
+    'total_winners_processed' : IDL.Nat,
+    'total_rewarded' : IDL.Nat64,
     'total_neurons_in_achievements' : IDL.Nat,
-    'icp_claimed_from_achievements' : IDL.Nat64,
-    'highest_icp_win_amount' : IDL.Nat64,
-    'highest_icp_pool' : IDL.Nat64,
-    'total_icp_pools_successfully_completed' : IDL.Nat,
-    'total_icp_winners_processed' : IDL.Nat,
-    'icp_fees_collected' : IDL.Nat64,
-    'pool_history_chart_data' : IDL.Vec(IDL.Tuple(Timestamp, PoolAmount)),
+    'total_winner_processing_failures' : IDL.Nat,
+    'highest_pool' : IDL.Nat64,
+    'fees_from_disbursement' : IDL.Nat64,
+    'total_staked' : IDL.Nat64,
+    'highest_win_amount' : IDL.Nat64,
+    'pool_history_chart_data' : IDL.Vec(HistoryChartData),
+    'average_win_amount' : IDL.Nat64,
+    'total_stakers' : IDL.Nat,
+    'fees_collected' : IDL.Nat64,
+    'claimed_from_achievements' : IDL.Nat64,
+    'average_per_pool' : IDL.Nat64,
+    'total_pools_successfully_completed' : IDL.Nat,
+  });
+  const RakeoffStats = IDL.Record({
+    'icp_stats' : Stats,
     'total_icp_rewarded' : IDL.Nat64,
     'total_icp_stakers' : IDL.Nat,
-    'icp_fees_from_icp_disbursement' : IDL.Nat64,
-    'total_icp_winner_processing_failures' : IDL.Nat,
     'total_icp_staked' : IDL.Nat64,
   });
   const HeaderField = IDL.Tuple(IDL.Text, IDL.Text);

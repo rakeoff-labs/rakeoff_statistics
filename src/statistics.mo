@@ -1,16 +1,17 @@
 import RakeoffKernelInterface "./rakeoffkernel_interface/kernel";
 import RakeoffAchievementsInterface "./rakeoffachievements_interface/achievements";
 import HashMap "mo:base/HashMap";
+import Array "mo:base/Array";
 import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Nat64 "mo:base/Nat64";
 import Nat "mo:base/Nat";
+import Text "mo:base/Text";
 import Server "mo:server";
 
 // Welcome to the RakeoffStatistics smart contract.
 // This smart contract is built to track some important stats about the Rakeoff dApp
-
 shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   /////////////////
@@ -30,25 +31,34 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Types ////
   /////////////
 
-  public type Timestamp = Text;
-  public type PoolAmount = Text;
+  public type HistoryChartData = {
+    timestamp : Nat64;
+    amount : Nat64;
+  };
+
+  public type Stats = {
+    total_stakers : Nat; // from stats
+    total_staked : Nat64; // from stats
+    claimed_from_achievements : Nat64; // from achievements
+    total_neurons_in_achievements : Nat; // from achievements
+    total_rewarded : Nat64; // from kernel
+    average_win_amount : Nat64; // from kernel
+    highest_win_amount : Nat64; // from kernel
+    average_per_pool : Nat64; // from kernel
+    highest_pool : Nat64; // from kernel
+    total_pools_successfully_completed : Nat; // from kernel
+    total_winners_processed : Nat; // from kernel
+    total_winner_processing_failures : Nat; // from kernel
+    pool_history_chart_data : [HistoryChartData]; // from kernel
+    fees_collected : Nat64; // from kernel
+    fees_from_disbursement : Nat64; // from kernel
+  };
 
   public type RakeoffStats = {
-    total_icp_stakers : Nat; // from stats
-    total_icp_staked : Nat64; // from stats
-    icp_claimed_from_achievements : Nat64; // from achievements
-    total_neurons_in_achievements : Nat; // from achievements
-    total_icp_rewarded : Nat64; // from kernel
-    average_icp_win_amount : Nat64; // from kernel
-    highest_icp_win_amount : Nat64;
-    average_icp_per_pool : Nat64;
-    highest_icp_pool : Nat64;
-    total_icp_pools_successfully_completed : Nat;
-    total_icp_winners_processed : Nat;
-    total_icp_winner_processing_failures : Nat;
-    pool_history_chart_data : [(Timestamp, PoolAmount)]; // returns as strings for the server
-    icp_fees_collected : Nat64; // from kernel
-    icp_fees_from_icp_disbursement : Nat64; // from kernel
+    icp_stats : Stats;
+    total_icp_stakers : Nat; // TODO - Remove
+    total_icp_staked : Nat64; // TODO - Remove
+    total_icp_rewarded : Nat64; // TODO - Remove
   };
 
   //////////////////////
@@ -56,23 +66,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   //////////////////////
 
   // stable variable of all Rakeoff stats - cached
-  private stable var _rakeoffStats : RakeoffStats = {
-    total_icp_stakers = 0;
-    total_icp_staked = 0;
-    icp_claimed_from_achievements = 0;
-    total_neurons_in_achievements = 0;
-    total_icp_rewarded = 0;
-    icp_fees_collected = 0;
-    icp_fees_from_icp_disbursement = 0;
-    average_icp_win_amount = 0;
-    highest_icp_win_amount = 0;
-    average_icp_per_pool = 0;
-    highest_icp_pool = 0;
-    total_icp_pools_successfully_completed = 0;
-    total_icp_winners_processed = 0;
-    total_icp_winner_processing_failures = 0;
-    pool_history_chart_data = [("0", "0")];
-  };
+  private stable var _rakeoffStats : ?RakeoffStats = null;
 
   // api key (secret)
   private stable var _apiKey : Text = "";
@@ -112,7 +106,37 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   };
 
   public query func get_rakeoff_stats() : async RakeoffStats {
-    return getRakeoffStats();
+    // return getRakeoffStats();
+    switch (getRakeoffStats()) {
+      case (?stats) {
+        return stats;
+      };
+      case (null) {
+        return {
+          // TODO remove the default population when API is integrated into landing, this is here to avoid breaking change
+          icp_stats = {
+            total_stakers = 0; // from stats
+            total_staked = 0; // from stats
+            claimed_from_achievements = 0; // from achievements
+            total_neurons_in_achievements = 0; // from achievements
+            total_rewarded = 0; // from kernel
+            average_win_amount = 0; // from kernel
+            highest_win_amount = 0;
+            average_per_pool = 0;
+            highest_pool = 0;
+            total_pools_successfully_completed = 0;
+            total_winners_processed = 0;
+            total_winner_processing_failures = 0;
+            pool_history_chart_data = [{ timestamp = 0; amount = 0 }];
+            fees_collected = 0; // from kernel
+            fees_from_disbursement = 0; // from kernel
+          };
+          total_icp_stakers = 0; // from stats
+          total_icp_staked = 0; // from stats
+          total_icp_rewarded = 0; // from kernel
+        };
+      };
+    };
   };
 
   public query func http_request(req : Server.HttpRequest) : async Server.HttpResponse {
@@ -147,36 +171,6 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Private Statistic Functions ///
   //////////////////////////////////
 
-  server.get(
-    "/" # API_VERSION # "/rakeoff-stats",
-    func(req, res) : Server.Response {
-
-      var json = "{ " #
-      "\"total_icp_stakers\": " # Nat.toText(_rakeoffStats.total_icp_stakers) # ", " #
-      "\"total_icp_staked\": " # Nat64.toText(_rakeoffStats.total_icp_staked) # ", " #
-      "\"icp_claimed_from_achievements\": " # Nat64.toText(_rakeoffStats.icp_claimed_from_achievements) # ", " #
-      "\"total_neurons_in_achievements\": " # Nat.toText(_rakeoffStats.total_neurons_in_achievements) # ", " #
-      "\"total_icp_rewarded\": " # Nat64.toText(_rakeoffStats.total_icp_rewarded) # ", " #
-      "\"average_icp_win_amount\": " # Nat64.toText(_rakeoffStats.average_icp_win_amount) # ", " #
-      "\"highest_icp_win_amount\": " # Nat64.toText(_rakeoffStats.highest_icp_win_amount) # ", " #
-      "\"average_icp_per_pool\": " # Nat64.toText(_rakeoffStats.average_icp_per_pool) # ", " #
-      "\"highest_icp_pool\": " # Nat64.toText(_rakeoffStats.highest_icp_pool) # ", " #
-      "\"total_icp_pools_successfully_completed\": " # Nat.toText(_rakeoffStats.total_icp_pools_successfully_completed) # ", " #
-      "\"total_icp_winners_processed\": " # Nat.toText(_rakeoffStats.total_icp_winners_processed) # ", " #
-      "\"total_icp_winner_processing_failures\": " # Nat.toText(_rakeoffStats.total_icp_winner_processing_failures) # ", " #
-      "\"pool_history_chart_data\": " # "[]" # ", " # // TODO - add chart data
-      "\"icp_fees_collected\": " # Nat64.toText(_rakeoffStats.icp_fees_collected) # ", " #
-      "\"icp_fees_from_icp_disbursement\": " # Nat64.toText(_rakeoffStats.icp_fees_from_icp_disbursement) #
-      " }";
-
-      res.json({
-        status_code = 200;
-        body = json;
-        cache_strategy = #noCache;
-      });
-    },
-  );
-
   private func trackUserStakedAmount(key : Text, userId : Principal, totalStakedIcp : Nat64) : Result.Result<(), ()> {
     if (key == _apiKey) {
       _userStakedIcp.put(userId, totalStakedIcp);
@@ -187,7 +181,15 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     };
   };
 
-  private func getRakeoffStats() : RakeoffStats {
+  private func getRakeoffStats() : ?RakeoffStats {
+    switch (_rakeoffStats) {
+      case (?_rakeoffStats) {
+        return ?_rakeoffStats;
+      };
+      case (null) {
+        return null;
+      };
+    };
     return _rakeoffStats;
   };
 
@@ -213,40 +215,46 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
       await RakeoffKernel.get_canister_stats(),
     ) {
       case (#ok achievementStats, kernelPools, kernelStats) {
-        _rakeoffStats := {
+        _rakeoffStats := ?{
+          icp_stats = {
+            total_stakers = tallyTotalStakers();
+            total_staked = tallyTotalStakedAmount();
+            claimed_from_achievements = getIcpClaimedFromAchievements(achievementStats);
+            total_neurons_in_achievements = getTotalNeuronsInAchievements(achievementStats);
+            total_rewarded = tallyTotalIcpRewarded(kernelPools);
+            fees_collected = totalIcpFeesCollected(kernelStats);
+            fees_from_disbursement = totalIcpFeesFromIcpDisbursement(kernelStats);
+            average_win_amount = calculateAverageIcpWinAmount(kernelPools);
+            highest_win_amount = getHighestIcpWinAmount(kernelPools);
+            average_per_pool = calculateAverageIcpPerPool(kernelPools);
+            highest_pool = getHighestIcpPoolAmount(kernelPools);
+            total_pools_successfully_completed = tallyTotalSuccessfulPool(kernelPools);
+            total_winners_processed = tallyTotalWinnersProcessed(kernelPools);
+            total_winner_processing_failures = tallyTotalWinnersProcessingFailures(kernelPools);
+            pool_history_chart_data = getPoolHistoryChartData(kernelPools);
+          };
           total_icp_stakers = tallyTotalStakers();
           total_icp_staked = tallyTotalStakedAmount();
-          icp_claimed_from_achievements = getIcpClaimedFromAchievements(achievementStats);
-          total_neurons_in_achievements = getTotalNeuronsInAchievements(achievementStats);
           total_icp_rewarded = tallyTotalIcpRewarded(kernelPools);
-          icp_fees_collected = totalIcpFeesCollected(kernelStats);
-          icp_fees_from_icp_disbursement = totalIcpFeesFromIcpDisbursement(kernelStats);
-          average_icp_win_amount = calculateAverageIcpWinAmount(kernelPools);
-          highest_icp_win_amount = getHighestIcpWinAmount(kernelPools);
-          average_icp_per_pool = calculateAverageIcpPerPool(kernelPools);
-          highest_icp_pool = getHighestIcpPoolAmount(kernelPools);
-          total_icp_pools_successfully_completed = tallyTotalSuccessfulPool(kernelPools);
-          total_icp_winners_processed = tallyTotalWinnersProcessed(kernelPools);
-          total_icp_winner_processing_failures = tallyTotalWinnersProcessingFailures(kernelPools);
-          pool_history_chart_data = getPoolHistoryChartData(kernelPools);
         };
+
       };
-      case _ {
-        // do nothing
-      };
+      case _ {}; // do nothing
     };
   };
 
-  ///////////////////////////////////////////
-  // Private Calculation Helper Functions ///
-  ///////////////////////////////////////////
+  ///////////////////////////////
+  // Private Helper Functions ///
+  ///////////////////////////////
 
-  // gets the total amount of stakers on Rakeoff
+  // Purpose: Calculate the total number of ICP stakers on Rakeoff.
+  // Returns: Total number of stakers as a Nat.
   private func tallyTotalStakers() : Nat {
     return _userStakedIcp.size();
   };
 
-  // gets the total amount of staked ICP based on the info stored here in the stats canister
+  // Purpose: Compute the total amount of staked ICP based on the data in the stats canister.
+  // Returns: Total staked ICP amount as a Nat64.
   private func tallyTotalStakedAmount() : Nat64 {
     var newStakedIcpSum : Nat64 = 0;
 
@@ -257,25 +265,37 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return newStakedIcpSum;
   };
 
-  // get the total icp claimed from the ICP bonus achievements canister
+  // Purpose: Retrieve the total ICP claimed from the ICP bonus achievements canister.
+  // Parameters: achievementStats - RakeoffAchievementsInterface.CanisterStats object.
+  // Returns: Total ICP claimed as a Nat64.
   private func getIcpClaimedFromAchievements(achievementStats : RakeoffAchievementsInterface.CanisterStats) : Nat64 {
     return achievementStats.icp_claimed;
   };
 
-  // get the total neurons (batches of staked ICP) from the ICP bonus achievements canister
+  // Purpose: Get the total count of neurons (batches of staked ICP) from the ICP bonus achievements canister.
+  // Parameters: achievementStats - RakeoffAchievementsInterface.CanisterStats object.
+  // Returns: Total neuron count as a Nat.
   private func getTotalNeuronsInAchievements(achievementStats : RakeoffAchievementsInterface.CanisterStats) : Nat {
     return achievementStats.total_neurons_added;
   };
 
+  // Purpose: Calculate the total ICP fees collected, based on the kernel stats.
+  // Parameters: kernelStats - RakeoffKernelInterface.CanisterStats object.
+  // Returns: Total ICP fees collected as a Nat64.
   private func totalIcpFeesCollected(kernelStats : RakeoffKernelInterface.CanisterStats) : Nat64 {
     return kernelStats.icp_fees_collected;
   };
 
+  // Purpose: Compute the total ICP fees earned from ICP disbursement.
+  // Parameters: kernelStats - RakeoffKernelInterface.CanisterStats object.
+  // Returns: Total ICP fees from disbursement as a Nat64.
   private func totalIcpFeesFromIcpDisbursement(kernelStats : RakeoffKernelInterface.CanisterStats) : Nat64 {
     return kernelStats.icp_earned_from_disbursement;
   };
 
-  // gets the total amount of icp disbursed to winners from the RakeoffKernel
+  // Purpose: Determine the total amount of ICP disbursed to winners from the RakeoffKernel.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Total ICP rewarded as a Nat64.
   private func tallyTotalIcpRewarded(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
     let oldPrizes : Nat64 = 8600000000; // as of our last update the old prizes were erased
     var totalPrizes : Nat64 = 0;
@@ -292,7 +312,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return totalPrizes + oldPrizes;
   };
 
-  // gets the total amount of #ok transfers disbursed to winners from the RakeoffKernel
+  // Purpose: Count the total number of winners processed successfully.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Total number of processed winners as a Nat.
   private func tallyTotalWinnersProcessed(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat {
     var totalWinners = 0;
     for (pool in kernelPools.pool_history.vals()) {
@@ -314,7 +336,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return totalWinners;
   };
 
-  // gets the total amount of #err transfers disbursed to winners from the RakeoffKernel
+  // Purpose: Count the total number of processing failures for winners' transfers.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Total number of processing failures as a Nat.
   private func tallyTotalWinnersProcessingFailures(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat {
     var totalFailures = 0;
     for (pool in kernelPools.pool_history.vals()) {
@@ -336,7 +360,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return totalFailures;
   };
 
-  // gets the total amount of ICP pools from RakeoffKernel with all transfers successful
+  // Purpose: Calculate the total number of ICP pools from RakeoffKernel with all transfers successful.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Total number of successful ICP pools as a Nat.
   private func tallyTotalSuccessfulPool(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat {
     var totalSuccesses = 0;
     for (pool in kernelPools.pool_history.vals()) {
@@ -353,17 +379,39 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return totalSuccesses;
   };
 
-  // calculate the average icp win amount from the pools
+  // Purpose: Compute the average ICP win amount from the pools.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Average ICP win amount as a Nat64.
   private func calculateAverageIcpWinAmount(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
-    return tallyTotalIcpRewarded(kernelPools) / Nat64.fromNat(tallyTotalWinnersProcessed(kernelPools));
+    let totalRewarded = tallyTotalIcpRewarded(kernelPools);
+    let winnersCount = tallyTotalWinnersProcessed(kernelPools);
+
+    // Check for division by zero
+    if (winnersCount == 0) {
+      return 0;
+    } else {
+      return totalRewarded / Nat64.fromNat(winnersCount);
+    };
   };
 
-  // calculate the average icp per pool
+  // Purpose: Calculate the average ICP amount per pool.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Average ICP per pool as a Nat64.
   private func calculateAverageIcpPerPool(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
-    return tallyTotalIcpRewarded(kernelPools) / Nat64.fromNat(kernelPools.pool_history.size());
+    let totalRewarded = tallyTotalIcpRewarded(kernelPools);
+    let poolCount = kernelPools.pool_history.size();
+
+    // Check for division by zero
+    if (poolCount == 0) {
+      return 0;
+    } else {
+      return totalRewarded / Nat64.fromNat(poolCount);
+    };
   };
 
-  // get the highest amount of ICP that was deposited in a single pool
+  // Purpose: Identify the highest amount of ICP that was deposited in a single pool.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Highest ICP pool amount as a Nat64.
   private func getHighestIcpPoolAmount(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
     var highestAmount : Nat64 = 0;
     for (pool in kernelPools.pool_history.vals()) {
@@ -380,7 +428,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return highestAmount;
   };
 
-  // get the highest winning amount of ICP
+  // Purpose: Determine the highest winning amount of ICP from the pools.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: Highest ICP win amount as a Nat64.
   private func getHighestIcpWinAmount(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
     var highestAmount : Nat64 = 0;
     for (pool in kernelPools.pool_history.vals()) {
@@ -404,9 +454,92 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return highestAmount;
   };
 
-  // TODO
-  private func getPoolHistoryChartData(kernelPools : RakeoffKernelInterface.RakeoffPools) : [(Timestamp, PoolAmount)] {
-    return [("0", "0")];
+  // Purpose: Create a chart data array showing pool history with timestamp and amount.
+  // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
+  // Returns: An array of HistoryChartData containing timestamp and amount for each pool record.
+  private func getPoolHistoryChartData(kernelPools : RakeoffKernelInterface.RakeoffPools) : [HistoryChartData] {
+    let historyChartData = Array.mapFilter(
+      kernelPools.pool_history,
+      func(x : ?RakeoffKernelInterface.PoolHistoryRecord) : ?HistoryChartData {
+        switch (x) {
+          case (?historyRecord) {
+            ?{
+              timestamp = historyRecord.timestamp_nanos;
+              amount = historyRecord.amount_disbursed;
+            };
+          };
+          case (null) { null };
+        };
+      },
+    );
+
+    return historyChartData;
   };
 
+  // Purpose: Convert pool history data into JSON format.
+  // Parameters: poolChartHistory - Array of HistoryChartData with pool history data.
+  // Returns: JSON formatted string of the pool history.
+  private func poolHistoryToJson(poolChartHistory : [HistoryChartData]) : Text {
+    var poolHistoryJson = "[";
+    var i = 0;
+    let totalSize : Nat = poolChartHistory.size() - 1;
+
+    for (historyEntry in poolChartHistory.vals()) {
+      poolHistoryJson := poolHistoryJson # "{ \"timestamp\": " # Nat64.toText(historyEntry.timestamp) # "," # "\"amount\": " # Nat64.toText(historyEntry.amount) # "}";
+      if (i < totalSize) {
+        poolHistoryJson := poolHistoryJson # ",";
+      };
+      i += 1;
+    };
+
+    poolHistoryJson := poolHistoryJson # "]";
+
+    return poolHistoryJson;
+  };
+
+  ///////////////////////////
+  // Server JSON Response ///
+  ///////////////////////////
+
+  server.get(
+    "/" # API_VERSION # "/rakeoff-stats",
+    func(req, res) : Server.Response {
+      switch (_rakeoffStats) {
+        case (?_rakeoffStats) {
+          var json = "{ \"icp_stats\": {" #
+          "\"total_stakers\": " # Nat.toText(_rakeoffStats.icp_stats.total_stakers) # ", " #
+          "\"total_staked\": " # Nat64.toText(_rakeoffStats.icp_stats.total_staked) # ", " #
+          "\"claimed_from_achievements\": " # Nat64.toText(_rakeoffStats.icp_stats.claimed_from_achievements) # ", " #
+          "\"total_neurons_in_achievements\": " # Nat.toText(_rakeoffStats.icp_stats.total_neurons_in_achievements) # ", " #
+          "\"total_rewarded\": " # Nat64.toText(_rakeoffStats.icp_stats.total_rewarded) # ", " #
+          "\"average_win_amount\": " # Nat64.toText(_rakeoffStats.icp_stats.average_win_amount) # ", " #
+          "\"highest_win_amount\": " # Nat64.toText(_rakeoffStats.icp_stats.highest_win_amount) # ", " #
+          "\"average_per_pool\": " # Nat64.toText(_rakeoffStats.icp_stats.average_per_pool) # ", " #
+          "\"highest_pool\": " # Nat64.toText(_rakeoffStats.icp_stats.highest_pool) # ", " #
+          "\"total_pools_successfully_completed\": " # Nat.toText(_rakeoffStats.icp_stats.total_pools_successfully_completed) # ", " #
+          "\"total_winners_processed\": " # Nat.toText(_rakeoffStats.icp_stats.total_winners_processed) # ", " #
+          "\"total_winner_processing_failures\": " # Nat.toText(_rakeoffStats.icp_stats.total_winner_processing_failures) # ", " #
+          "\"pool_history_chart_data\": " # poolHistoryToJson(_rakeoffStats.icp_stats.pool_history_chart_data) # ", " #
+          "\"fees_collected\": " # Nat64.toText(_rakeoffStats.icp_stats.fees_collected) # ", " #
+          "\"fees_from_disbursement\": " # Nat64.toText(_rakeoffStats.icp_stats.fees_from_disbursement) #
+          " }}";
+
+          return res.json({
+            status_code = 200;
+            body = json;
+            cache_strategy = #noCache;
+          });
+        };
+        case (null) {
+          return res.send({
+            status_code = 404;
+            headers = [];
+            body = Text.encodeUtf8("API data not found");
+            streaming_strategy = null;
+            cache_strategy = #noCache;
+          });
+        };
+      };
+    },
+  );
 };

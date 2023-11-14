@@ -3,6 +3,7 @@ type CallbackStrategy = record {
   callback : func (Token) -> (StreamingCallbackHttpResponse) query;
 };
 type HeaderField = record { text; text };
+type HistoryChartData = record { timestamp : nat64; amount : nat64 };
 type HttpRequest = record {
   url : text;
   method : text;
@@ -16,7 +17,6 @@ type HttpResponse = record {
   streaming_strategy : opt StreamingStrategy;
   status_code : nat16;
 };
-type PoolAmount = text;
 type RakeoffStatistics = service {
   controller_clear_server_cache : () -> ();
   controller_get_api_key : () -> (Result_1);
@@ -28,29 +28,34 @@ type RakeoffStatistics = service {
   track_user_staked_amount : (text, nat64) -> (Result);
 };
 type RakeoffStats = record {
-  average_icp_per_pool : nat64;
-  average_icp_win_amount : nat64;
-  total_neurons_in_achievements : nat;
-  icp_claimed_from_achievements : nat64;
-  highest_icp_win_amount : nat64;
-  highest_icp_pool : nat64;
-  total_icp_pools_successfully_completed : nat;
-  total_icp_winners_processed : nat;
-  icp_fees_collected : nat64;
-  pool_history_chart_data : vec record { Timestamp; PoolAmount };
+  icp_stats : Stats;
   total_icp_rewarded : nat64;
   total_icp_stakers : nat;
-  icp_fees_from_icp_disbursement : nat64;
-  total_icp_winner_processing_failures : nat;
   total_icp_staked : nat64;
 };
 type Result = variant { ok; err };
 type Result_1 = variant { ok : text; err };
+type Stats = record {
+  total_winners_processed : nat;
+  total_rewarded : nat64;
+  total_neurons_in_achievements : nat;
+  total_winner_processing_failures : nat;
+  highest_pool : nat64;
+  fees_from_disbursement : nat64;
+  total_staked : nat64;
+  highest_win_amount : nat64;
+  pool_history_chart_data : vec HistoryChartData;
+  average_win_amount : nat64;
+  total_stakers : nat;
+  fees_collected : nat64;
+  claimed_from_achievements : nat64;
+  average_per_pool : nat64;
+  total_pools_successfully_completed : nat;
+};
 type StreamingCallbackHttpResponse = record {
   token : opt Token;
   body : vec nat8;
 };
 type StreamingStrategy = variant { Callback : CallbackStrategy };
-type Timestamp = text;
 type Token = record { arbitrary_data : text };
 service : RakeoffStatistics
