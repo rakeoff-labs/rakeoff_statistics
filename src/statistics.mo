@@ -239,9 +239,6 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
             total_winner_processing_failures = tallyTotalWinnersProcessingFailures(kernelPools);
             pool_history_chart_data = getPoolHistoryChartData(kernelPools);
           };
-          total_icp_stakers = tallyTotalStakers();
-          total_icp_staked = tallyTotalStakedAmount();
-          total_icp_rewarded = tallyTotalIcpRewarded(kernelPools);
         };
 
       };
