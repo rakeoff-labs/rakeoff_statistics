@@ -8,6 +8,7 @@ import Result "mo:base/Result";
 import Nat64 "mo:base/Nat64";
 import Nat "mo:base/Nat";
 import Text "mo:base/Text";
+import Timer "mo:base/Timer";
 import Server "mo:server";
 
 // Welcome to the RakeoffStatistics smart contract.
@@ -26,6 +27,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   // API version
   let API_VERSION : Text = "v1";
+
+  // The amount of time it takes for the api to refresh
+  let API_REFRESH_TIME_NANOS : Nat = (24 * 60 * 60 * 1_000_000_000); // 24 hours
 
   /////////////
   // Types ////
@@ -56,9 +60,6 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   public type RakeoffStats = {
     icp_stats : Stats;
-    total_icp_stakers : Nat; // TODO - Remove
-    total_icp_staked : Nat64; // TODO - Remove
-    total_icp_rewarded : Nat64; // TODO - Remove
   };
 
   //////////////////////
@@ -77,6 +78,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Maintain stable hashmap state
   private stable var _userStakedIcpStorage : [(Principal, Nat64)] = [];
 
+  // Maintain the current timer id
+  private stable var _refreshTimerId : Nat = 0;
+
   // Maintain the server cache
   stable var serializedEntries : Server.SerializedEntries = ([], [], [owner]);
   var server = Server.Server({ serializedEntries });
@@ -93,6 +97,9 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
       Principal.equal,
       Principal.hash,
     );
+    // Reset the timer after upgrades
+    ignore setRefreshTimer();
+    // Prune the server cache
     ignore server.cache.pruneAll();
   };
 
@@ -105,38 +112,8 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
     return trackUserStakedAmount(key, caller, totalStakedIcp);
   };
 
-  public query func get_rakeoff_stats() : async RakeoffStats {
-    // return getRakeoffStats();
-    switch (getRakeoffStats()) {
-      case (?stats) {
-        return stats;
-      };
-      case (null) {
-        return {
-          // TODO remove the default population when API is integrated into landing, this is here to avoid breaking change
-          icp_stats = {
-            total_stakers = 0; // from stats
-            total_staked = 0; // from stats
-            claimed_from_achievements = 0; // from achievements
-            total_neurons_in_achievements = 0; // from achievements
-            total_rewarded = 0; // from kernel
-            average_win_amount = 0; // from kernel
-            highest_win_amount = 0;
-            average_per_pool = 0;
-            highest_pool = 0;
-            total_pools_successfully_completed = 0;
-            total_winners_processed = 0;
-            total_winner_processing_failures = 0;
-            pool_history_chart_data = [{ timestamp = 0; amount = 0 }];
-            fees_collected = 0; // from kernel
-            fees_from_disbursement = 0; // from kernel
-          };
-          total_icp_stakers = 0; // from stats
-          total_icp_staked = 0; // from stats
-          total_icp_rewarded = 0; // from kernel
-        };
-      };
-    };
+  public query func get_rakeoff_stats() : async ?RakeoffStats {
+    return getRakeoffStats();
   };
 
   public query func http_request(req : Server.HttpRequest) : async Server.HttpResponse {
@@ -160,6 +137,16 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   public shared ({ caller }) func controller_get_api_key() : async Result.Result<Text, ()> {
     assert (caller == owner);
     return getApiKey();
+  };
+
+  public shared ({ caller }) func controller_set_refresh_timer() : async Result.Result<Text, ()> {
+    assert (caller == owner);
+    return setRefreshTimer();
+  };
+
+  public shared ({ caller }) func controller_get_refresh_timer() : async Result.Result<Nat, ()> {
+    assert (caller == owner);
+    return getRefreshTimerId();
   };
 
   public shared ({ caller }) func controller_update_cached_stats() : async () {
@@ -204,6 +191,25 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
 
   private func getApiKey() : Result.Result<Text, ()> {
     return #ok(_apiKey);
+  };
+
+  private func setRefreshTimer() : Result.Result<Text, ()> {
+    // Safety cancel
+    Timer.cancelTimer(_refreshTimerId);
+
+    // Set the timer
+    let id = Timer.recurringTimer(
+      #nanoseconds(API_REFRESH_TIME_NANOS),
+      updateCachedStats,
+    );
+
+    _refreshTimerId := id;
+
+    return #ok("Reccuring timer set with ID: " # Nat.toText(_refreshTimerId));
+  };
+
+  private func getRefreshTimerId() : Result.Result<Nat, ()> {
+    return #ok(_refreshTimerId);
   };
 
   private func updateCachedStats() : async () {

@@ -23,22 +23,21 @@ export interface HttpResponse {
 export interface RakeoffStatistics {
   'controller_clear_server_cache' : ActorMethod<[], undefined>,
   'controller_get_api_key' : ActorMethod<[], Result_1>,
+  'controller_get_refresh_timer' : ActorMethod<[], Result_2>,
   'controller_set_api_key' : ActorMethod<[string], Result_1>,
+  'controller_set_refresh_timer' : ActorMethod<[], Result_1>,
   'controller_update_cached_stats' : ActorMethod<[], undefined>,
-  'get_rakeoff_stats' : ActorMethod<[], RakeoffStats>,
+  'get_rakeoff_stats' : ActorMethod<[], [] | [RakeoffStats]>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'http_request_update' : ActorMethod<[HttpRequest], HttpResponse>,
   'track_user_staked_amount' : ActorMethod<[string, bigint], Result>,
 }
-export interface RakeoffStats {
-  'icp_stats' : Stats,
-  'total_icp_rewarded' : bigint,
-  'total_icp_stakers' : bigint,
-  'total_icp_staked' : bigint,
-}
+export interface RakeoffStats { 'icp_stats' : Stats }
 export type Result = { 'ok' : null } |
   { 'err' : null };
 export type Result_1 = { 'ok' : string } |
+  { 'err' : null };
+export type Result_2 = { 'ok' : bigint } |
   { 'err' : null };
 export interface Stats {
   'total_winners_processed' : bigint,

@@ -20,21 +20,19 @@ type HttpResponse = record {
 type RakeoffStatistics = service {
   controller_clear_server_cache : () -> ();
   controller_get_api_key : () -> (Result_1);
+  controller_get_refresh_timer : () -> (Result_2);
   controller_set_api_key : (text) -> (Result_1);
+  controller_set_refresh_timer : () -> (Result_1);
   controller_update_cached_stats : () -> ();
-  get_rakeoff_stats : () -> (RakeoffStats) query;
+  get_rakeoff_stats : () -> (opt RakeoffStats) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
   http_request_update : (HttpRequest) -> (HttpResponse);
   track_user_staked_amount : (text, nat64) -> (Result);
 };
-type RakeoffStats = record {
-  icp_stats : Stats;
-  total_icp_rewarded : nat64;
-  total_icp_stakers : nat;
-  total_icp_staked : nat64;
-};
+type RakeoffStats = record { icp_stats : Stats };
 type Result = variant { ok; err };
 type Result_1 = variant { ok : text; err };
+type Result_2 = variant { ok : nat; err };
 type Stats = record {
   total_winners_processed : nat;
   total_rewarded : nat64;

@@ -26,14 +26,8 @@ type HttpResponse__3 =
     upgrade : ?Bool
   };
 type HttpResponse__4 = HttpResponse__3;
-type Key__3 = Text;
-type RakeoffStats =
-  {
-    icp_stats : Stats;
-    total_icp_rewarded : Nat64;
-    total_icp_staked : Nat64;
-    total_icp_stakers : Nat
-  };
+type Key__2 = Text;
+type RakeoffStats = {icp_stats : Stats};
 type StableAsset = {contentType : Text; encodings : [(Text, AssetEncoding)]};
 type StableAsset__1 = StableAsset;
 type Stats =
@@ -61,8 +55,9 @@ type Token = {arbitrary_data : Text};
 actor {
   stable var _apiKey : Text;
   stable var _rakeoffStats : ?RakeoffStats;
+  stable var _refreshTimerId : Nat;
   stable var _userStakedIcpStorage : [(Principal, Nat64)];
   stable var serializedEntries :
-    ([(HttpRequest__4, (HttpResponse__4, Nat))], [(Key__3, StableAsset__1)],
+    ([(HttpRequest__4, (HttpResponse__4, Nat))], [(Key__2, StableAsset__1)],
      [Principal])
 };
