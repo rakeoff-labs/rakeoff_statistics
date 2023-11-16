@@ -213,8 +213,6 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   };
 
   private func updateCachedStats() : async () {
-    server.empty_cache();
-
     switch (
       await RakeoffAchievements.get_canister_stats(),
       await RakeoffKernel.get_rakeoff_pools(),
@@ -240,7 +238,8 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
             pool_history_chart_data = getPoolHistoryChartData(kernelPools);
           };
         };
-
+        // clear the cache after update
+        server.empty_cache();
       };
       case _ {}; // do nothing
     };
