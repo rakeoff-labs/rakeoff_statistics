@@ -252,7 +252,15 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Purpose: Calculate the total number of ICP stakers on Rakeoff.
   // Returns: Total number of stakers as a Nat.
   private func tallyTotalStakers() : Nat {
-    return _userStakedIcp.size();
+    var totalStakers = 0;
+
+    for (value in _userStakedIcp.vals()) {
+      if (value > 0) {
+        totalStakers += 1;
+      };
+    };
+
+    return totalStakers;
   };
 
   // Purpose: Compute the total amount of staked ICP based on the data in the stats canister.
