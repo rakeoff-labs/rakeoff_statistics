@@ -307,7 +307,6 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
   // Parameters: kernelPools - RakeoffKernelInterface.RakeoffPools object.
   // Returns: Total ICP rewarded as a Nat64.
   private func tallyTotalIcpRewarded(kernelPools : RakeoffKernelInterface.RakeoffPools) : Nat64 {
-    let oldPrizes : Nat64 = 8600000000; // as of our last update the old prizes were erased
     var totalPrizes : Nat64 = 0;
 
     for (pool in kernelPools.pool_history.vals()) {
@@ -319,7 +318,7 @@ shared ({ caller = owner }) actor class RakeoffStatistics() = thisCanister {
       };
     };
 
-    return totalPrizes + oldPrizes;
+    return totalPrizes;
   };
 
   // Purpose: Count the total number of winners processed successfully.
